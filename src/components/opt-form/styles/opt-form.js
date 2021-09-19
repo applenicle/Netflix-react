@@ -49,7 +49,7 @@ export const Button = styled.button`
   }
 `;
 export const Text = styled.p`
-  font-size: 19.20px
+  font-size: 19.20px;
   color:white;
   text-align: center;
   @media (max-width: 600px) {
