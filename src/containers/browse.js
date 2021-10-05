@@ -1,22 +1,21 @@
-import React, {useEffect} from 'react'
+import React, { useState, useEffect, useContext } from 'react';
 import Fuse from 'fuse.js';
-import { Card, Header, Loading } from '../components'
-import * as ROUTES  from '../constants/routes'
-import logo from '../logo.svg'
+import { Card, Header, Loading, Player } from '../components';
+import * as ROUTES from '../constants/routes';
+import logo from '../logo.svg';
+import { FirebaseContext } from '../context/firebase';
 import { SelectProfileContainer } from './profiles';
-import { FirebaseContext} from '../context/firebase'
 import { FooterContainer } from './footer';
 
-
 export function BrowseContainer({ slides }) {
-  const [category, setCategory] = React.useState('series');
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [profile, setProfile] = React.useState({});
-  const [loading, setLoading] = React.useState(true);
-  const [slideRows, setSlideRows] = React.useState([]);
+  const [category, setCategory] = useState('series');
+  const [profile, setProfile] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [slideRows, setSlideRows] = useState([]);
 
-  const { firebase } = React.useContext(FirebaseContext);
-  const user = firebase.auth().currentUser || {}; 
+  const { firebase } = useContext(FirebaseContext);
+  const user = firebase.auth().currentUser || {};
 
   useEffect(() => {
     setTimeout(() => {
@@ -28,12 +27,22 @@ export function BrowseContainer({ slides }) {
     setSlideRows(slides[category]);
   }, [slides, category]);
 
+  useEffect(() => {
+    const fuse = new Fuse(slideRows, { keys: ['data.description', 'data.title', 'data.genre'] });
+    const results = fuse.search(searchTerm).map(({ item }) => item);
 
+    if (slideRows.length > 0 && searchTerm.length > 3 && results.length > 0) {
+      setSlideRows(results);
+    } else {
+      setSlideRows(slides[category]);
+    }
+  }, [searchTerm]);
+  
   return profile.displayName ? (
     <>
-    {loading ? <Loading src={user.photoURL} /> : <Loading.ReleaseBody />}
+      {loading ? <Loading src={user.photoURL} /> : <Loading.ReleaseBody />}
 
-    <Header src="joker1" dontShowOnSmallViewPort>
+      <Header src="joker1" dontShowOnSmallViewPort>
         <Header.Frame>
           <Header.Group>
             <Header.Logo to={ROUTES.HOME} src={logo} alt="Netflix" />
@@ -45,7 +54,7 @@ export function BrowseContainer({ slides }) {
             </Header.TextLink>
           </Header.Group>
           <Header.Group>
-            <Header.Search/>
+            <Header.Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
             <Header.Profile>
               <Header.Picture src={user.photoURL} />
               <Header.Dropdown>
@@ -87,17 +96,18 @@ export function BrowseContainer({ slides }) {
                 </Card.Item>
               ))}
             </Card.Entities>
-            {/* <Card.Feature category={category}>
+            <Card.Feature category={category}>
               <Player>
                 <Player.Button />
                 <Player.Video src="/videos/bunny.mp4" />
               </Player>
-            </Card.Feature> */}
+            </Card.Feature>
           </Card>
         ))}
       </Card.Group>
       <FooterContainer />
     </>
-   ):
-    (<SelectProfileContainer user={user} setProfile={setProfile}/>);
+  ) : (
+    <SelectProfileContainer user={user} setProfile={setProfile} />
+  );
 }
